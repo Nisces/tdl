@@ -35,6 +35,8 @@ func (p *progress) OnAdd(elem downloader.Elem) {
 		"url":        e.url,
 		"message_id": e.fromMsg.ID,
 		"state":      "start",
+		"total":      e.file.Size,
+		"downloaded": 0,
 	}
 	fmt.Println(toJson(data))
 }
@@ -80,6 +82,8 @@ func (p *progress) OnDone(elem downloader.Elem, err error) {
 		"url":        e.url,
 		"message_id": e.fromMsg.ID,
 		"state":      "done",
+		"total":      e.file.Size,
+		"downloaded": e.file.Size,
 	}
 	fmt.Println(toJson(data))
 }
@@ -112,12 +116,15 @@ func (p *progress) fail(elem downloader.Elem, err error) {
 		"url":        e.url,
 		"message_id": e.fromMsg.ID,
 		"state":      "fail",
+		"total":      e.file.Size,
 	}
-	j, _ := jsoniter.ConfigCompatibleWithStandardLibrary.MarshalToString(data)
-	fmt.Println(j)
+	if err != nil {
+		data["err_msg"] = err.Error()
+	}
+	fmt.Println(toJson(data))
 }
 
-func toJson(data any) string {
-	j, _ := jsoniter.ConfigCompatibleWithStandardLibrary.MarshalToString(data)
+func toJson(v any) string {
+	j, _ := jsoniter.ConfigCompatibleWithStandardLibrary.MarshalToString(v)
 	return j
 }
