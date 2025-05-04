@@ -34,7 +34,7 @@ func (p *progress) OnAdd(elem downloader.Elem) {
 		"id":         e.id,
 		"url":        e.url,
 		"message_id": e.fromMsg.ID,
-		"state":      "start",
+		"state":      "Start",
 		"total":      e.file.Size,
 		"downloaded": 0,
 	}
@@ -47,7 +47,7 @@ func (p *progress) OnDownload(elem downloader.Elem, state downloader.ProgressSta
 		"id":         e.id,
 		"url":        e.url,
 		"message_id": e.fromMsg.ID,
-		"state":      "downloading",
+		"state":      "Downloading",
 		"total":      state.Total,
 		"downloaded": state.Downloaded,
 	}
@@ -81,7 +81,7 @@ func (p *progress) OnDone(elem downloader.Elem, err error) {
 		"id":         e.id,
 		"url":        e.url,
 		"message_id": e.fromMsg.ID,
-		"state":      "done",
+		"state":      "Completed",
 		"total":      e.file.Size,
 		"downloaded": e.file.Size,
 	}
@@ -115,7 +115,7 @@ func (p *progress) fail(elem downloader.Elem, err error) {
 		"id":         e.id,
 		"url":        e.url,
 		"message_id": e.fromMsg.ID,
-		"state":      "fail",
+		"state":      "Failed",
 		"total":      e.file.Size,
 	}
 	if err != nil {
