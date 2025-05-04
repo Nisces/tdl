@@ -6,69 +6,62 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 
-	"github.com/fatih/color"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/go-faster/errors"
-	pw "github.com/jedib0t/go-pretty/v6/progress"
+	jsoniter "github.com/json-iterator/go"
 
 	"github.com/iyear/tdl/core/downloader"
 	"github.com/iyear/tdl/core/util/fsutil"
-	"github.com/iyear/tdl/pkg/prog"
-	"github.com/iyear/tdl/pkg/utils"
 )
 
 type progress struct {
-	pw       pw.Writer
-	trackers *sync.Map // map[ID]*pw.Tracker
-	opts     Options
+	opts Options
 
 	it *iter
 }
 
-func newProgress(p pw.Writer, it *iter, opts Options) *progress {
+func newProgress(it *iter, opts Options) *progress {
 	return &progress{
-		pw:       p,
-		trackers: &sync.Map{},
-		opts:     opts,
-		it:       it,
+		opts: opts,
+		it:   it,
 	}
 }
 
 func (p *progress) OnAdd(elem downloader.Elem) {
-	tracker := prog.AppendTracker(p.pw, utils.Byte.FormatBinaryBytes, p.processMessage(elem), elem.File().Size())
-	p.trackers.Store(elem.(*iterElem).id, tracker)
+	e := elem.(*iterElem)
+	data := map[string]any{
+		"id":         e.id,
+		"url":        e.url,
+		"message_id": e.fromMsg.ID,
+		"state":      "start",
+	}
+	fmt.Println(toJson(data))
 }
 
 func (p *progress) OnDownload(elem downloader.Elem, state downloader.ProgressState) {
-	tracker, ok := p.trackers.Load(elem.(*iterElem).id)
-	if !ok {
-		return
+	e := elem.(*iterElem)
+	data := map[string]any{
+		"id":         e.id,
+		"url":        e.url,
+		"message_id": e.fromMsg.ID,
+		"state":      "downloading",
+		"total":      state.Total,
+		"downloaded": state.Downloaded,
 	}
-
-	t := tracker.(*pw.Tracker)
-	t.UpdateTotal(state.Total)
-	t.SetValue(state.Downloaded)
+	fmt.Println(toJson(data))
 }
 
 func (p *progress) OnDone(elem downloader.Elem, err error) {
 	e := elem.(*iterElem)
-
-	tracker, ok := p.trackers.Load(e.id)
-	if !ok {
-		return
-	}
-	t := tracker.(*pw.Tracker)
-
 	if err := e.to.Close(); err != nil {
-		p.fail(t, elem, errors.Wrap(err, "close file"))
+		p.fail(elem, errors.Wrap(err, "close file"))
 		return
 	}
 
 	if err != nil {
 		if !errors.Is(err, context.Canceled) { // don't report user cancel
-			p.fail(t, elem, errors.Wrap(err, "progress"))
+			p.fail(elem, errors.Wrap(err, "progress"))
 		}
 		_ = os.Remove(e.to.Name()) // just try to remove temp file, ignore error
 		return
@@ -77,9 +70,18 @@ func (p *progress) OnDone(elem downloader.Elem, err error) {
 	p.it.Finish(e.id)
 
 	if err := p.donePost(e); err != nil {
-		p.fail(t, elem, errors.Wrap(err, "post file"))
+		p.fail(elem, errors.Wrap(err, "post file"))
 		return
 	}
+
+	// 最后才成功，但上面这些东西本不该出现在这里
+	data := map[string]any{
+		"id":         e.id,
+		"url":        e.url,
+		"message_id": e.fromMsg.ID,
+		"state":      "done",
+	}
+	fmt.Println(toJson(data))
 }
 
 func (p *progress) donePost(elem *iterElem) error {
@@ -103,20 +105,19 @@ func (p *progress) donePost(elem *iterElem) error {
 	return nil
 }
 
-func (p *progress) fail(t *pw.Tracker, elem downloader.Elem, err error) {
-	p.pw.Log(color.RedString("%s error: %s", p.elemString(elem), err.Error()))
-	t.MarkAsErrored()
-}
-
-func (p *progress) processMessage(elem downloader.Elem) string {
-	return p.elemString(elem)
-}
-
-func (p *progress) elemString(elem downloader.Elem) string {
+func (p *progress) fail(elem downloader.Elem, err error) {
 	e := elem.(*iterElem)
-	return fmt.Sprintf("%s(%d):%d -> %s",
-		e.from.VisibleName(),
-		e.from.ID(),
-		e.fromMsg.ID,
-		strings.TrimSuffix(e.to.Name(), tempExt))
+	data := map[string]any{
+		"id":         e.id,
+		"url":        e.url,
+		"message_id": e.fromMsg.ID,
+		"state":      "fail",
+	}
+	j, _ := jsoniter.ConfigCompatibleWithStandardLibrary.MarshalToString(data)
+	fmt.Println(j)
+}
+
+func toJson(data any) string {
+	j, _ := jsoniter.ConfigCompatibleWithStandardLibrary.MarshalToString(data)
+	return j
 }

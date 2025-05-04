@@ -21,9 +21,7 @@ import (
 	"github.com/iyear/tdl/core/tclient"
 	"github.com/iyear/tdl/pkg/consts"
 	"github.com/iyear/tdl/pkg/key"
-	"github.com/iyear/tdl/pkg/prog"
 	"github.com/iyear/tdl/pkg/tmessage"
-	"github.com/iyear/tdl/pkg/utils"
 )
 
 type Options struct {
@@ -97,15 +95,11 @@ func Run(ctx context.Context, c *telegram.Client, kvd storage.Storage, opts Opti
 		}
 	}()
 
-	dlProgress := prog.New(utils.Byte.FormatBinaryBytes)
-	dlProgress.SetNumTrackersExpected(it.Total())
-	prog.EnablePS(ctx, dlProgress)
-
 	options := downloader.Options{
 		Pool:     pool,
 		Threads:  viper.GetInt(consts.FlagThreads),
 		Iter:     it,
-		Progress: newProgress(dlProgress, it, opts),
+		Progress: newProgress(it, opts),
 	}
 	limit := viper.GetInt(consts.FlagLimit)
 
@@ -115,11 +109,6 @@ func Run(ctx context.Context, c *telegram.Client, kvd storage.Storage, opts Opti
 		zap.Bool("skip_same", opts.SkipSame),
 		zap.Int("threads", options.Threads),
 		zap.Int("limit", limit))
-
-	color.Green("All files will be downloaded to '%s' dir", opts.Dir)
-
-	go dlProgress.Render()
-	defer prog.Wait(ctx, dlProgress)
 
 	return downloader.New(options).Download(ctx, limit)
 }

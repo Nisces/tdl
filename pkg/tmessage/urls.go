@@ -35,6 +35,7 @@ func FromURL(ctx context.Context, pool dcpool.Pool, kvd storage.Storage, urls []
 			}
 
 			msgMap[ch.ID()].Messages = append(msgMap[ch.ID()].Messages, msgid)
+			msgMap[ch.ID()].URLs = append(msgMap[ch.ID()].URLs, u)
 		}
 
 		// cap is at least len of map

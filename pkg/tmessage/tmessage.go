@@ -7,6 +7,7 @@ import (
 type Dialog struct {
 	Peer     tg.InputPeerClass
 	Messages []int
+	URLs     []string
 }
 
 type ParseSource func() ([]*Dialog, error)

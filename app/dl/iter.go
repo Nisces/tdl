@@ -147,7 +147,7 @@ func (i *iter) process(ctx context.Context) (ret bool, skip bool) {
 		return false, false
 	}
 
-	peer, msg := i.dialogs[i.i].Peer, i.dialogs[i.i].Messages[i.j]
+	peer, msg, url := i.dialogs[i.i].Peer, i.dialogs[i.i].Messages[i.j], i.dialogs[i.i].URLs[i.j]
 
 	// check if finished
 	if _, ok := i.finished[i.ij2n(i.i, i.j)]; ok {
@@ -166,12 +166,12 @@ func (i *iter) process(ctx context.Context) (ret bool, skip bool) {
 	}
 
 	if _, ok := message.GetGroupedID(); ok && i.opts.Group {
-		return i.processGrouped(ctx, message, from)
+		return i.processGrouped(ctx, message, from, url)
 	}
-	return i.processSingle(message, from)
+	return i.processSingle(message, from, url)
 }
 
-func (i *iter) processSingle(message *tg.Message, from peers.Peer) (bool, bool) {
+func (i *iter) processSingle(message *tg.Message, from peers.Peer, url string) (bool, bool) {
 	item, ok := tmedia.GetMedia(message)
 	if !ok {
 		i.err = errors.Errorf("can not get media from %d/%d message", from.ID(), message.ID)
@@ -227,7 +227,8 @@ func (i *iter) processSingle(message *tg.Message, from peers.Peer) (bool, bool) 
 	}
 
 	i.elem <- &iterElem{
-		id: int(i.counter.Inc()),
+		id:  int(i.counter.Inc()),
+		url: url,
 
 		from:    from,
 		fromMsg: message,
@@ -241,7 +242,7 @@ func (i *iter) processSingle(message *tg.Message, from peers.Peer) (bool, bool) 
 	return true, false
 }
 
-func (i *iter) processGrouped(ctx context.Context, message *tg.Message, from peers.Peer) (bool, bool) {
+func (i *iter) processGrouped(ctx context.Context, message *tg.Message, from peers.Peer, url string) (bool, bool) {
 	grouped, err := tutil.GetGroupedMessages(ctx, i.pool.Default(ctx), from.InputPeer(), message)
 	if err != nil {
 		i.err = errors.Wrapf(err, "resolve grouped message %d/%d", from.ID(), message.ID)
@@ -250,7 +251,7 @@ func (i *iter) processGrouped(ctx context.Context, message *tg.Message, from pee
 
 	for _, msg := range grouped {
 		// best effort, ignore error
-		_, _ = i.processSingle(msg, from)
+		_, _ = i.processSingle(msg, from, url)
 	}
 	return true, false
 }

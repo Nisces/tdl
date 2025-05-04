@@ -12,7 +12,8 @@ import (
 )
 
 type iterElem struct {
-	id int
+	id  int
+	url string
 
 	from    peers.Peer
 	fromMsg *tg.Message
