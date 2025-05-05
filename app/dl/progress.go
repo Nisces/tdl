@@ -33,7 +33,9 @@ func (p *progress) OnAdd(elem downloader.Elem) {
 	data := map[string]any{
 		"id":         e.id,
 		"url":        e.url,
+		"from":       e.from.VisibleName(),
 		"message_id": e.fromMsg.ID,
+		"message":    e.fromMsg.GetMessage(),
 		"state":      "Start",
 		"total":      e.file.Size,
 		"downloaded": 0,
@@ -46,7 +48,9 @@ func (p *progress) OnDownload(elem downloader.Elem, state downloader.ProgressSta
 	data := map[string]any{
 		"id":         e.id,
 		"url":        e.url,
+		"from":       e.from.VisibleName(),
 		"message_id": e.fromMsg.ID,
+		"message":    e.fromMsg.GetMessage(),
 		"state":      "Downloading",
 		"total":      state.Total,
 		"downloaded": state.Downloaded,
@@ -80,7 +84,9 @@ func (p *progress) OnDone(elem downloader.Elem, err error) {
 	data := map[string]any{
 		"id":         e.id,
 		"url":        e.url,
+		"from":       e.from.VisibleName(),
 		"message_id": e.fromMsg.ID,
+		"message":    e.fromMsg.GetMessage(),
 		"state":      "Completed",
 		"total":      e.file.Size,
 		"downloaded": e.file.Size,
@@ -114,7 +120,9 @@ func (p *progress) fail(elem downloader.Elem, err error) {
 	data := map[string]any{
 		"id":         e.id,
 		"url":        e.url,
+		"from":       e.from.VisibleName(),
 		"message_id": e.fromMsg.ID,
+		"message":    e.fromMsg.GetMessage(),
 		"state":      "Failed",
 		"total":      e.file.Size,
 	}
