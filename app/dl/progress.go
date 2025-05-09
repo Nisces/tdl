@@ -128,6 +128,8 @@ func (p *progress) fail(elem downloader.Elem, err error) {
 	}
 	if err != nil {
 		data["err_msg"] = err.Error()
+	} else {
+		data["err_msg"] = "unknown error"
 	}
 	fmt.Println(toJson(data))
 }
